@@ -1,5 +1,7 @@
 services:
   - docker
+install:
+  - npm ci
 script:
   - docker-compose up -d
   - npm run start
