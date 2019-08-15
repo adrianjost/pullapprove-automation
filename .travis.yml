@@ -1,0 +1,6 @@
+services:
+  - docker
+script:
+  - docker-compose up -d
+  - npm run start
+cache: npm
