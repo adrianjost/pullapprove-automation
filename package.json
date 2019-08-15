@@ -4,7 +4,7 @@
   "description": "A Bot that can set the pullapprove available date.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node index.js"
   },
   "keywords": [
     "pullapprove",
