@@ -13,10 +13,9 @@
   "author": "Adrian Jost",
   "license": "MIT",
   "dependencies": {
-    "chromedriver": "^76.0.0",
     "dayjs": "^1.8.15",
     "node-2fa": "^1.1.2",
-    "selenium-webdriver": "^4.0.0-alpha.4"
+    "puppeteer": "^1.19.0"
   },
   "devDependencies": {
     "dotenv": "^8.0.0"

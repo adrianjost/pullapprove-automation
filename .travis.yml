@@ -1,10 +1,9 @@
 language: node_js
 node_js: lts/*
-services:
-  - docker
+addons:
+  chrome: stable
 install:
   - npm ci
 script:
-  - docker-compose up -d
-  - npm run start
+  - npm start
 cache: npm

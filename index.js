@@ -1,15 +1,25 @@
 require("dotenv").config();
-
-const { Builder, By, until } = require("selenium-webdriver");
-const chrome = require("selenium-webdriver/chrome");
-const chromedriver = require("chromedriver");
-chrome.setDefaultService(new chrome.ServiceBuilder(chromedriver.path).build());
-const TIMEOUT = 10000;
+const puppeteer = require("puppeteer");
 
 const twoFactor = require("node-2fa");
-const GIT_USERNAME = process.env.GIT_USERNAME;
-const GIT_PASSWORD = process.env.GIT_PASSWORD;
-const GIT_2FA = () => twoFactor.generateToken(process.env.GIT_2FA_SECRET).token;
+
+if (
+  !process.env.GIT_USERNAME ||
+  !process.env.GIT_PASSWORD ||
+  !process.env.GIT_2FA_SECRET
+) {
+  console.error("GIT CREDENTIALS MISSING");
+  process.exit(1);
+}
+
+process.env.GIT_2FA_SECRET.token;
+const GIT = {
+  USERNAME: process.env.GIT_USERNAME,
+  PASSWORD: process.env.GIT_PASSWORD,
+  get OTP() {
+    return twoFactor.generateToken(process.env.GIT_2FA_SECRET).token;
+  }
+};
 
 const dayjs = require("dayjs");
 const weekday = require("dayjs/plugin/weekday");
@@ -28,58 +38,41 @@ const unavailableUntil = dayjs(new Date())
   .format("YYYY-MM-DD HH:mm");
 console.error("Available @" + unavailableUntil);
 
-(async function example() {
-  let driver = await new Builder().forBrowser("chrome").build();
-  try {
-    await driver.get(
-      "https://app.pullapprove.com/accounts/github/login/?next=%2Favailability%2F"
-    );
+(async () => {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
 
-    await driver.wait(until.urlContains("https://github.com"), TIMEOUT);
+  await page.goto(
+    "https://app.pullapprove.com/accounts/github/login/?next=%2Favailability%2F"
+  );
 
-    const githubLoginUsername = await driver.findElement(
-      By.css("#login_field")
-    );
-    const githubLoginPassword = await driver.findElement(By.css("#password"));
-    const githubLoginButton = await driver.findElement(
-      By.css(
-        "#login > form > div.auth-form-body.mt-3 > input.btn.btn-primary.btn-block"
-      )
-    );
-    await githubLoginUsername.sendKeys(...Array.from(GIT_USERNAME));
-    await githubLoginPassword.sendKeys(...Array.from(GIT_PASSWORD));
-    await githubLoginButton.click();
+  await page.waitFor("input[name=login]", { visible: true });
 
-    await driver.wait(
-      until.urlIs("https://github.com/sessions/two-factor"),
-      TIMEOUT
-    );
-    const github2FAInput = await driver.findElement(By.css("#otp"));
-    const github2FAButton = await driver.findElement(
-      By.css("#login > div.auth-form-body.mt-3 > form > button")
-    );
-    await github2FAInput.sendKeys(...Array.from(GIT_2FA()));
-    await github2FAButton.click();
+  await page.type("input[name=login]", GIT.USERNAME);
+  await page.type("input[name=password]", GIT.PASSWORD);
 
-    await driver.wait(
-      until.urlIs("https://app.pullapprove.com/availability/"),
-      TIMEOUT
-    );
+  await Promise.all([
+    page.waitForNavigation(),
+    page.click(
+      "#login > form > div.auth-form-body.mt-3 > input.btn.btn-primary.btn-block"
+    )
+  ]);
 
-    await driver.executeScript(
-      `document.getElementById("id_unavailable_until").value = "${unavailableUntil}"`
-    );
-    await driver.findElement(By.css("form > button")).click();
+  await page.waitFor("input[name=otp]", { visible: true });
+  await page.type("input[name=otp]", GIT.OTP);
 
-    await driver.wait(
-      until.urlContains("https://app.pullapprove.com"),
-      TIMEOUT
-    );
+  await Promise.all([
+    page.waitForNavigation(),
+    page.click("#login > div.auth-form-body.mt-3 > form > button")
+  ]);
 
-    console.log("Unavailable date updated");
-  } catch (error) {
-    console.error(error);
-  } finally {
-    await driver.quit();
-  }
+  await page.waitFor("input[name=unavailable_until]");
+
+  await page.evaluate(date => {
+    document.getElementById("id_unavailable_until").value = date;
+  }, unavailableUntil);
+
+  await Promise.all([page.waitForNavigation(), page.click("form > button")]);
+
+  await browser.close();
 })();
