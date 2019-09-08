@@ -9,7 +9,15 @@ module.exports = function () {
   // before Thursday
   const NOW = dayjs(new Date());
 
-  if ((NOW.day() > 0 && NOW.day() < 3) || (NOW.day() === 3 && NOW.hour() > 14)) {
+  if(NOW.day() === 0){
+    return dayjs(new Date())
+    .weekday(1)
+    .set("hour", 7)
+    .set("minute", 0)
+    .format("YYYY-MM-DD HH:mm");
+  }
+
+  if ( NOW.day() < 3 || (NOW.day() === 3 && NOW.hour() > 14)) {
     return false;
   }
 
