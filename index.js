@@ -1,7 +1,13 @@
 require("dotenv").config();
 const puppeteer = require("puppeteer");
-
 const twoFactor = require("node-2fa");
+const unavailableUntil = require("./date.js")()
+if(unavailableUntil === false){
+  console.log("nothing to update")
+  process.exit(0);
+}else{
+  console.log("unavailable until", unavailableUntil)
+}
 
 if (
   !process.env.GIT_USERNAME ||
@@ -16,49 +22,38 @@ process.env.GIT_2FA_SECRET.token;
 const GIT_DATA = {
   USERNAME: process.env.GIT_USERNAME,
   PASSWORD: process.env.GIT_PASSWORD,
+  USE_2FA: !!process.env.GIT_2FA_SECRET,
   get OTP() {
     return twoFactor.generateToken(process.env.GIT_2FA_SECRET).token;
   }
 };
-
-const dayjs = require("dayjs");
-const weekday = require("dayjs/plugin/weekday");
-dayjs.extend(weekday);
-
-// before Thursday
-const NOW = dayjs(new Date());
-if (NOW.day() < 3 || (NOW.day() === 3 && NOW.hour() > 14)) {
-  exit(0);
-}
-
-const unavailableUntil = dayjs(new Date())
-  .weekday(8)
-  .set("hour", 7)
-  .set("minute", 0)
-  .format("YYYY-MM-DD HH:mm");
 
 const gitLogin = async (page, credentials) => {
   console.log("git login...");
 
   await page.waitFor("input[name=login]", { visible: true });
 
+  console.log("set username & password")
   await page.type("input[name=login]", credentials.USERNAME);
   await page.type("input[name=password]", credentials.PASSWORD);
-
+  
   await Promise.all([
     page.waitForNavigation(),
     page.click(
       "#login > form > div.auth-form-body.mt-3 > input.btn.btn-primary.btn-block"
-    )
-  ]);
+      )
+    ]);
+    
+  if(credentials.USE_2FA){
+    console.log("fill in 2FA Code")
+    await page.waitFor("input[name=otp]", { visible: true });
+    await page.type("input[name=otp]", credentials.OTP);
 
-  await page.waitFor("input[name=otp]", { visible: true });
-  await page.type("input[name=otp]", credentials.OTP);
-
-  await Promise.all([
-    page.waitForNavigation(),
-    page.click("#login > div.auth-form-body.mt-3 > form > button")
-  ]);
+    await Promise.all([
+      page.waitForNavigation(),
+      page.click("#login > div.auth-form-body.mt-3 > form > button")
+    ]);
+  }
 
   console.log("logged in");
 };
