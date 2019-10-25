@@ -15,7 +15,7 @@
   "dependencies": {
     "dayjs": "^1.8.15",
     "node-2fa": "^1.1.2",
-    "puppeteer": "^1.19.0"
+    "puppeteer": "^2.0.0"
   },
   "devDependencies": {
     "dotenv": "^8.0.0"
