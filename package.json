@@ -13,7 +13,7 @@
   "author": "Adrian Jost",
   "license": "MIT",
   "dependencies": {
-    "dayjs": "^1.8.15",
+    "dayjs": "^1.8.26",
     "node-2fa": "^1.1.2",
     "puppeteer": "^2.0.0"
   },
